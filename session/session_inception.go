@@ -4160,7 +4160,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				} else if s.dbType == DBTypeOceanBase && GetDataTypeLength(fieldType)[0] > GetDataTypeLength(foundField.Type)[0] {
 					if s.inc.CheckOfflineDDL {
 						// OceanBase改变类型长度，不属于offline DDL
-						s.appendWarningMessage(fmt.Sprintf("Warning: Changing Column Type Length %s.%s", foundField.Type, fieldType))
+						// s.appendWarningMessage(fmt.Sprintf("Warning: Changing Column Type Length %s.%s", foundField.Type, fieldType))
 						return
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
