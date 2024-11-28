@@ -38,7 +38,7 @@ func (s *session) checkAlterPartitionRule(t *TableInfo, opts *ast.PartitionOptio
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		s.appendErrorMsg(fmt.Sprintf("Can't alter partition rule of table '%s'.", t.Name))
+		s.appendErrorMsg(fmt.Sprintf("\"OB-OFFLINE-DDL\" Can't alter partition rule of table '%s'.", t.Name))
 	}
 }
 
