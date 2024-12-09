@@ -3495,8 +3495,8 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 		return
 	}
 
-
-	var addColumnAndIndex = 0
+	var addColumn = 0
+	var addConstraint = 0
 	for i, alter := range node.Specs {
 		switch alter.Tp {
 		case ast.AlterTableOption:
@@ -3508,12 +3508,12 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 
 		case ast.AlterTableAddColumns:
 			s.checkAddColumn(table, alter)
-			addColumnAndIndex += 1
+			addColumn += 1
 		case ast.AlterTableDropColumn:
 			s.checkDropColumn(table, alter)
 
 		case ast.AlterTableAddConstraint:
-			addColumnAndIndex += 1
+			addConstraint += 1
 			s.checkAddConstraint(table, alter)
 
 		case ast.AlterTableDropPrimaryKey:
@@ -3636,7 +3636,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		if addColumnAndIndex >= 2 {
+		if addColumn >= 1 && addConstraint >= 1 {
 			s.appendErrorNo(ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT)
 		}
 	}
