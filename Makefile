@@ -358,19 +358,19 @@ release:
 	@echo "$(CGREEN)Cross platform building for release ...$(CEND)"
 	@mkdir -p release
 	@GOOS=darwin GOARCH=amd64 $(GOBUILD) -ldflags '-s -w $(LDFLAGS)'  -o goInception tidb-server/main.go
-	@tar -czf release/goInception-macOS-${GOARCH}-${VERSION}.tar.gz goInception config/config.toml.default
+	@tar -czf release/goInception-macOS-amd64-${VERSION}.tar.gz goInception config/config.toml.default
 	@rm -f goInception
 
 	@GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags '-s -w $(LDFLAGS)'  -o goInception tidb-server/main.go
-	@tar -czf release/goInception-linux-${GOARCH}-${VERSION}.tar.gz goInception config/config.toml.default
+	@tar -czf release/goInception-linux-amd64-${VERSION}.tar.gz goInception config/config.toml.default
 	@rm -f goInception
 
 	@GOOS=darwin GOARCH=arm64 $(GOBUILD) -ldflags '-s -w $(LDFLAGS)'  -o goInception tidb-server/main.go
-	@tar -czf release/goInception-macOS-${GOARCH}-${VERSION}.tar.gz goInception config/config.toml.default
+	@tar -czf release/goInception-macOS-arm64-${VERSION}.tar.gz goInception config/config.toml.default
 	@rm -f goInception
 
 	@GOOS=linux GOARCH=arm64 $(GOBUILD) -ldflags '-s -w $(LDFLAGS)'  -o goInception tidb-server/main.go
-	@tar -czf release/goInception-linux-${GOARCH}-${VERSION}.tar.gz goInception config/config.toml.default
+	@tar -czf release/goInception-linux-arm64-${VERSION}.tar.gz goInception config/config.toml.default
 	@rm -f goInception
 
 .PHONY: release
