@@ -436,7 +436,7 @@ var ErrorsDefault = map[ErrorCode]string{
 	ER_CANT_DROP_COLUMN:                                  "\"OB-OFFLINE-DDL\"  Can't drop column '%s'.",
 	ER_CANT_DROP_PRIMARY_KEY:                             "\"OB-OFFLINE-DDL\"  Can't drop PRIMARY KEY '%s'.",
 	ER_CANT_ADD_PRIMARY_KEY:                              "\"OB-OFFLINE-DDL\"  Can't add PRIMARY KEY '%s'.",
-	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  Can't drop partition '%s'.",
+	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  Can't drop partition. Please check whether there is a global partition index.",
 	ER_CANT_TRUNCATE_PARTITION:                           "\"OB-OFFLINE-DDL\"  Can't truncate partition '%s'.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "\"OB-OFFLINE-DDL\"  Can't add columns and constraints in one statement.",
 }
@@ -630,7 +630,7 @@ var ErrorsChinese = map[ErrorCode]string{
 	ER_CANT_DROP_COLUMN:                                  "\"OB-OFFLINE-DDL\"  禁止删除列 '%s'.",
 	ER_CANT_DROP_PRIMARY_KEY:                             "\"OB-OFFLINE-DDL\"  禁止执行DROP PRIMARY KEY操作 '%s'.",
 	ER_CANT_ADD_PRIMARY_KEY:                              "\"OB-OFFLINE-DDL\"  禁止执行ADD PRIMARY KEY操作 '%s'.",
-	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  禁止删除分区 '%s'.",
+	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  禁止删除分区，请检查是否有全局分区索引.",
 	ER_CANT_TRUNCATE_PARTITION:                           "\"OB-OFFLINE-DDL\"  禁止清空分区 '%s'.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "\"OB-OFFLINE-DDL\"  禁止在一条语句中同时添加列和约束.",
 }
