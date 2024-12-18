@@ -237,6 +237,7 @@ const (
 	ER_CANT_TRUNCATE_PARTITION
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT
 	ER_TOOL_BASED_UNIQUE_INDEX_WARNING
+	ER_CANT_TRUNCATE_TABLE
 )
 
 var ErrorsDefault = map[ErrorCode]string{
@@ -379,7 +380,8 @@ var ErrorsDefault = map[ErrorCode]string{
 	ER_REMOVED_SPACES:                      "Leading spaces are removed from name '%s'",
 	ER_CHANGE_COLUMN_TYPE:                  "\"OB-OFFLINE-DDL\" Type conversion warning for column '%s' %s -> %s.",
 	ER_CANT_CHANGE_COLUMN_TYPE:             "\"OB-OFFLINE-DDL\" Cannot change column type '%s' %s -> %s.",
-	ER_CANT_DROP_TABLE:                     "\"OB-OFFLINE-DDL\" Drop/truncate '%s' is not allowed, please replace with alter rename statement.",
+	ER_CANT_DROP_TABLE:                     "\"OB-OFFLINE-DDL\" Drop '%s' is not allowed, please replace with alter rename statement.",
+	ER_CANT_TRUNCATE_TABLE:                 "\"OB-OFFLINE-DDL\" Truncate '%s' is not allowed, please replace with alter rename statement.",
 	ER_CANT_DROP_DATABASE:                  "Command is forbidden! Cannot drop database '%s'.",
 	ER_WRONG_TABLE_NAME:                    "Incorrect table name '%-.100s'",
 	ER_CANT_SET_CHARSET:                    "Cannot set charset '%s'",
@@ -440,7 +442,7 @@ var ErrorsDefault = map[ErrorCode]string{
 	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  Can't drop partition. Please check whether there is a global partition index.",
 	ER_CANT_TRUNCATE_PARTITION:                           "\"OB-OFFLINE-DDL\"  Can't truncate partition '%s'.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "\"OB-OFFLINE-DDL\"  Can't add columns and constraints in one statement.",
-	ER_TOOL_BASED_UNIQUE_INDEX_WARNING: "Existing unique indexes may cause duplicate data loss when executing statements using schema-altering tools. It is recommended to review and assess potential risks.",
+	ER_TOOL_BASED_UNIQUE_INDEX_WARNING:                   "Existing unique indexes may cause duplicate data loss when executing statements using schema-altering tools. It is recommended to review and assess potential risks.",
 }
 
 var ErrorsChinese = map[ErrorCode]string{
@@ -582,7 +584,8 @@ var ErrorsChinese = map[ErrorCode]string{
 	ER_REMOVED_SPACES:                                    "Leading spaces are removed from name '%s'",
 	ER_CHANGE_COLUMN_TYPE:                                "\"OB-OFFLINE-DDL\" 类型转换警告: 列 '%s' %s -> %s.",
 	ER_CANT_CHANGE_COLUMN_TYPE:                           "\"OB-OFFLINE-DDL\" 禁止改变列的类型 '%s' %s -> %s.",
-	ER_CANT_DROP_TABLE:                                   "\"OB-OFFLINE-DDL\" 禁用【DROP】|【TRUNCATE】删除/清空表 '%s', 请改用RENAME重写.",
+	ER_CANT_DROP_TABLE:                                   "\"OB-OFFLINE-DDL\" 禁用【DROP】删除 '%s', 请改用RENAME重写.",
+	ER_CANT_TRUNCATE_TABLE:                               "\"OB-OFFLINE-DDL\" 禁用【TRUNCATE】清空表 '%s', 请改用RENAME重写.",
 	ER_CANT_DROP_DATABASE:                                "命令禁止! 无法删除数据库'%s'.",
 	ER_WRONG_TABLE_NAME:                                  "不正确的表名: '%-.100s'",
 	ER_CANT_SET_CHARSET:                                  "禁止指定字符集: '%s'",
@@ -635,7 +638,7 @@ var ErrorsChinese = map[ErrorCode]string{
 	ER_CANT_DROP_PARTITION:                               "\"OB-OFFLINE-DDL\"  禁止删除分区，请检查是否有全局分区索引.",
 	ER_CANT_TRUNCATE_PARTITION:                           "\"OB-OFFLINE-DDL\"  禁止清空分区 '%s'.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "\"OB-OFFLINE-DDL\"  禁止在一条语句中同时添加列和约束.",
-	ER_TOOL_BASED_UNIQUE_INDEX_WARNING:     "存在唯一索引，使用改表工具执行语句可能导致重复数据丢失，建议复查是否存在风险",
+	ER_TOOL_BASED_UNIQUE_INDEX_WARNING:                   "存在唯一索引，使用改表工具执行语句可能导致重复数据丢失，建议复查是否存在风险",
 }
 
 func GetErrorLevel(code ErrorCode) uint8 {
@@ -753,6 +756,7 @@ func GetErrorLevel(code ErrorCode) uint8 {
 		ER_VIEW_SELECT_CLAUSE,
 		ER_NOT_SUPPORTED_ITEM_TYPE,
 		ER_CANT_DROP_TABLE,
+		ER_CANT_TRUNCATE_TABLE,
 		ER_CANT_DROP_DATABASE,
 		ER_CANT_DROP_FIELD_OR_KEY,
 		ER_NOT_SUPPORTED_YET,
@@ -1087,6 +1091,8 @@ func (e ErrorCode) String() string {
 		return "er_change_column_type"
 	case ER_CANT_DROP_TABLE:
 		return "er_cant_drop_table"
+	case ER_CANT_TRUNCATE_TABLE:
+		return "er_cant_truncate_table"
 	case ER_CANT_DROP_DATABASE:
 		return "er_cant_drop_database"
 	case ER_WRONG_TABLE_NAME:

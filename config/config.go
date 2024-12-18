@@ -280,7 +280,8 @@ type Inc struct {
 	EnableChangeColumn  bool `toml:"enable_change_column" json:"enable_change_column"` // 允许change column操作
 	EnableColumnCharset bool `toml:"enable_column_charset" json:"enable_column_charset"`
 	EnableDropDatabase  bool `toml:"enable_drop_database" json:"enable_drop_database"`
-	EnableDropTable     bool `toml:"enable_drop_table" json:"enable_drop_table"` // 允许删除表
+	EnableDropTable     bool `toml:"enable_drop_table" json:"enable_drop_table"`         // 允许删除表
+	EnableTruncateTable bool `toml:"enable_truncate_table" json:"enable_truncate_table"` // 允许删除表
 	EnableEnumSetBit    bool `toml:"enable_enum_set_bit" json:"enable_enum_set_bit"`
 
 	// DML指纹功能,开启后,在审核时,类似DML将直接复用审核结果,可大幅优化审核效率
@@ -697,6 +698,7 @@ var defaultConf = Config{
 		EnableZeroDate:        true,
 		EnableNullable:        true,
 		EnableDropTable:       false,
+		EnableTruncateTable:   false,
 		EnableSetEngine:       true,
 		CheckTableComment:     false,
 		CheckColumnComment:    false,

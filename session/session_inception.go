@@ -2305,8 +2305,8 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 
 	t := node.Table
 
-	if !s.inc.EnableDropTable {
-		s.appendErrorNo(ER_CANT_DROP_TABLE, t.Name)
+	if !s.inc.EnableTruncateTable {
+		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE, t.Name)
 	} else {
 
 		if t.Schema.O == "" {
