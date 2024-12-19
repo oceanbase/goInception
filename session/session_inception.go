@@ -2306,7 +2306,7 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 	t := node.Table
 
 	if !s.inc.EnableTruncateTable {
-		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE, t.Name)
+		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
 	} else {
 
 		if t.Schema.O == "" {
@@ -2330,7 +2330,7 @@ func (s *session) checkDropTable(node *ast.DropTableStmt, sql string) {
 	for _, t := range node.Tables {
 
 		if !s.inc.EnableDropTable {
-			s.appendErrorNo(ER_CANT_DROP_TABLE, t.Name)
+			s.appendErrorNo(ER_CANT_DROP_TABLE)
 			continue
 		}
 
@@ -2764,13 +2764,13 @@ func (s *session) checkCreateTable(node *ast.CreateTableStmt, sql string) {
 					if s.inc.EnableSetCharset {
 						s.checkCharset(opt.StrValue)
 					} else {
-						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, node.Table.Name.O)
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
 					}
 				case ast.TableOptionCollate:
 					if s.inc.EnableSetCollation {
 						s.checkCollation(opt.StrValue)
 					} else {
-						s.appendErrorNo(ErrTableCollationNotSupport, node.Table.Name.O)
+						s.appendErrorNo(ErrTableCollationNotSupport)
 					}
 				case ast.TableOptionComment:
 					if opt.StrValue != "" {
@@ -3111,14 +3111,14 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 			if s.inc.EnableSetCharset && s.dbType != DBTypeOceanBase {
 				s.checkCharset(opt.StrValue)
 			} else {
-				s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
+				s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
 			}
 			character = opt.StrValue
 		case ast.TableOptionCollate:
 			if s.inc.EnableSetCollation && s.dbType != DBTypeOceanBase {
 				s.checkCollation(opt.StrValue)
 			} else {
-				s.appendErrorNo(ErrTableCollationNotSupport, table)
+				s.appendErrorNo(ErrTableCollationNotSupport)
 			}
 			collation = opt.StrValue
 		case ast.TableOptionComment:
@@ -4064,14 +4064,14 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 					if isAutoIncrement {
 						if s.dbType == DBTypeOceanBase {
-							s.appendErrorNo(ER_CANT_MODIFY_AUTO_INCREMENT_COLUMN, nc.Name.Name.String())
+							s.appendErrorNo(ER_CANT_MODIFY_AUTO_INCREMENT_COLUMN)
 							break
 						}
 					}
 
 					if isPrimary || isUnique {
 						if s.dbType == DBTypeOceanBase {
-							s.appendErrorNo(ER_CANT_MODIFY_PK_OR_UK_COLUMN, nc.Name.Name.String())
+							s.appendErrorNo(ER_CANT_MODIFY_PK_OR_UK_COLUMN)
 							break
 						}
 					}
@@ -4092,8 +4092,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name))
+					s.appendErrorNo(ErCantChangeColumnPosition)
 
 					// 在新的快照上变更表结构
 					t := s.cacheTableSnapshot(t)
@@ -4237,8 +4236,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name))
+					s.appendErrorNo(ErCantChangeColumnPosition)
 
 					if c.Position.Tp == ast.ColumnPositionFirst {
 						tmp := make([]FieldInfo, 0, len(t.Fields))
@@ -4360,31 +4358,21 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				str := string([]byte(foundField.Type)[:7])
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-						foundField.Type, fieldType)
+					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				} else if s.dbType == DBTypeOceanBase && GetDataTypeLength(fieldType)[0] >= GetDataTypeLength(foundField.Type)[0] {
 					if s.inc.CheckOfflineDDL {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-							fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-							foundField.Type, fieldType)
+						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-						foundField.Type, fieldType)
+					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				}
 			case mysql.TypeString:
 				str := string([]byte(foundField.Type)[:4])
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-						foundField.Type, fieldType)
+					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				} else if GetDataTypeLength(fieldType)[0] <= GetDataTypeLength(foundField.Type)[0] {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-						foundField.Type, fieldType)
+					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				}
 			default:
 				// log.Info(fieldType, ":", foundField.Type)
@@ -4406,14 +4394,10 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				} else {
 					if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-						s.appendErrorNo(ER_CANT_CHANGE_COLUMN_TYPE,
-							fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-							foundField.Type, fieldType)
+						s.appendErrorNo(ER_CANT_CHANGE_COLUMN_TYPE)
 						continue
 					}
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-						fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-						foundField.Type, fieldType)
+					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				}
 			}
 		}
@@ -5140,8 +5124,7 @@ func (s *session) checkAlterTableDropIndex(t *TableInfo, indexName string) bool 
 func (s *session) checkDropPrimaryKey(t *TableInfo, c *ast.AlterTableSpec) {
 	log.Debug("checkDropPrimaryKey")
 	if s.inc.CheckOfflineDDL && s.dbType == DBTypeOceanBase {
-		s.appendErrorNo(ER_CANT_DROP_PRIMARY_KEY,
-			fmt.Sprintf("%s", t.Name))
+		s.appendErrorNo(ER_CANT_DROP_PRIMARY_KEY)
 	}
 
 	s.checkAlterTableDropIndex(t, "PRIMARY")
@@ -5183,21 +5166,21 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if s.inc.CheckOfflineDDL && isAutoIncrement {
 					if s.dbType == DBTypeOceanBase {
-						s.appendErrorNo(ER_CANT_ADD_AUTO_INCREMENT_COLUMN, nc.Name.Name.String())
+						s.appendErrorNo(ER_CANT_ADD_AUTO_INCREMENT_COLUMN)
 						break
 					}
 				}
 
 				if s.inc.CheckOfflineDDL && isStore != nil && *isStore {
 					if s.dbType == DBTypeOceanBase {
-						s.appendErrorNo(ER_CANT_ADD_STORED_GENERATED_COLUMN, nc.Name.Name.String())
+						s.appendErrorNo(ER_CANT_ADD_STORED_GENERATED_COLUMN)
 						break
 					}
 				}
 
 				if isPrimary || isUnique {
 					if s.dbType == DBTypeOceanBase {
-						s.appendErrorNo(ER_CANT_ADD_PK_OR_UK_COLUMN, nc.Name.Name.String())
+						s.appendErrorNo(ER_CANT_ADD_PK_OR_UK_COLUMN)
 						break
 					}
 					rows := t.Indexes
@@ -5281,8 +5264,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 			}
 
 			if c.Position != nil && c.Position.Tp != ast.ColumnPositionNone {
-				s.appendErrorNo(ErCantChangeColumnPosition,
-					fmt.Sprintf("%s.%s", t.Name, nc.Name.Name))
+				s.appendErrorNo(ErCantChangeColumnPosition)
 			}
 
 			if s.opt.Execute {
@@ -5315,7 +5297,7 @@ func checkExistsColumns(t *TableInfo) (count int) {
 func (s *session) checkDropColumn(t *TableInfo, c *ast.AlterTableSpec) {
 	if s.dbType == DBTypeOceanBase {
 		if s.inc.CheckOfflineDDL {
-			s.appendErrorNo(ER_CANT_DROP_COLUMN, fmt.Sprintf("%s", c.OldColumnName.Name.O))
+			s.appendErrorNo(ER_CANT_DROP_COLUMN)
 			return
 		}
 

@@ -22,7 +22,7 @@ func (s *session) checkPartitionTruncate(t *TableInfo, parts []model.CIStr) {
 			}
 		}
 		if found && s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-			s.appendErrorNo(ER_CANT_TRUNCATE_PARTITION, part.String())
+			s.appendErrorNo(ER_CANT_TRUNCATE_PARTITION)
 			break
 		}
 
@@ -38,7 +38,7 @@ func (s *session) checkAlterPartitionRule(t *TableInfo, opts *ast.PartitionOptio
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		s.appendErrorMsg(fmt.Sprintf("\"OB-OFFLINE-DDL\" Can't alter partition rule of table '%s'.", t.Name))
+		s.appendErrorMsg("[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.")
 	}
 }
 
@@ -56,7 +56,6 @@ func (s *session) checkAddPrimaryKey(t *TableInfo, c *ast.AlterTableSpec) {
 		for _, key := range c.Constraint.Keys {
 			primaryNames = append(primaryNames, key.Column.Name.O)
 		}
-		s.appendErrorNo(ER_CANT_ADD_PRIMARY_KEY,
-			fmt.Sprintf("%s.%s", t.Name, primaryNames))
+		s.appendErrorNo(ER_CANT_ADD_PRIMARY_KEY)
 	}
 }
