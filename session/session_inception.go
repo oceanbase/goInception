@@ -4359,9 +4359,9 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
-				} else if s.dbType == DBTypeOceanBase && GetDataTypeLength(fieldType)[0] >= GetDataTypeLength(foundField.Type)[0] {
+				} else if s.dbType == DBTypeOceanBase {
 					if s.inc.CheckOfflineDDL {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						// s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
@@ -4371,6 +4371,8 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+				} else if s.dbType == DBTypeOceanBase {
+
 				} else if GetDataTypeLength(fieldType)[0] <= GetDataTypeLength(foundField.Type)[0] {
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				}
