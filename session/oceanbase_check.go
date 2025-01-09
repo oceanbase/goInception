@@ -38,13 +38,13 @@ func (s *session) checkAlterPartitionRule(t *TableInfo, opts *ast.PartitionOptio
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		s.appendErrorMsg("[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.")
+		s.appendErrorNo(ER_CANT_ALTER_PARTITION_RULE)
 	}
 }
 
 func (s *session) checkCharsetChange(charset string, table string) bool {
 	if s.inc.CheckOfflineDDL {
-		s.appendErrorMsg(fmt.Sprintf("Can't change chartset of table '%s' to '%s'.", table, charset))
+		s.appendWarningMessage(fmt.Sprintf("Can't change chartset of table '%s' to '%s'.", table, charset))
 		return true
 	}
 	return false

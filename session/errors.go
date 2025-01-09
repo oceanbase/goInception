@@ -238,6 +238,7 @@ const (
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT
 	ER_TOOL_BASED_UNIQUE_INDEX_WARNING
 	ER_CANT_TRUNCATE_TABLE
+	ER_CANT_ALTER_PARTITION_RULE
 )
 
 var ErrorsDefault = map[ErrorCode]string{
@@ -441,6 +442,7 @@ var ErrorsDefault = map[ErrorCode]string{
 	ER_CANT_ADD_PRIMARY_KEY:                              "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_CANT_DROP_PARTITION:                               "[OceanBase Offline DDL Check] Truncate 或 Drop 分区，如果表上有全局非分区索引会重建索引，影响SQL性能，请确认后再操作.",
 	ER_CANT_TRUNCATE_PARTITION:                           "[OceanBase Offline DDL Check] Truncate 或 Drop 分区，如果表上有全局非分区索引会重建索引，影响SQL性能，请确认后再操作.",
+	ER_CANT_ALTER_PARTITION_RULE:                         "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_TOOL_BASED_UNIQUE_INDEX_WARNING:                   "Existing unique indexes may cause duplicate data loss when executing statements using schema-altering tools. It is recommended to review and assess potential risks.",
 }
@@ -637,6 +639,7 @@ var ErrorsChinese = map[ErrorCode]string{
 	ER_CANT_ADD_PRIMARY_KEY:                              "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_CANT_DROP_PARTITION:                               "[OceanBase Offline DDL Check] Truncate 或 Drop 分区，如果表上有全局非分区索引会重建索引，影响SQL性能，请确认后再操作.",
 	ER_CANT_TRUNCATE_PARTITION:                           "[OceanBase Offline DDL Check] Truncate 或 Drop 分区，如果表上有全局非分区索引会重建索引，影响SQL性能，请确认后再操作.",
+	ER_CANT_ALTER_PARTITION_RULE:                         "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT: "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作.",
 	ER_TOOL_BASED_UNIQUE_INDEX_WARNING:                   "存在唯一索引，使用改表工具执行语句可能导致重复数据丢失，建议复查是否存在风险",
 }
@@ -717,6 +720,7 @@ func GetErrorLevel(code ErrorCode) uint8 {
 		ER_CANT_ADD_PRIMARY_KEY,
 		ER_CANT_DROP_PARTITION,
 		ER_CANT_TRUNCATE_PARTITION,
+		ER_CANT_ALTER_PARTITION_RULE,
 		ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT,
 		ER_CANT_TRUNCATE_TABLE,
 		ER_CANT_CHANGE_COLUMN_TYPE,
