@@ -709,8 +709,12 @@ func (s *session) checkPartitionDrop(t *TableInfo, parts []model.CIStr) {
 			}
 		}
 		if found && s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-			s.appendErrorNo(ER_CANT_DROP_PARTITION)
-			break
+			if s.dbVersion == 3 {
+				// Do Nothing, It's OnLine DDL under 3.x
+			} else if s.dbVersion == 4 {
+				s.appendErrorNo(ER_CANT_DROP_PARTITION)
+				break
+			}
 		}
 
 		if !found {
