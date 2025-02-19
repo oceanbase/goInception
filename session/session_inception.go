@@ -1796,6 +1796,7 @@ func (s *session) mysqlServerVersion() {
 					if len(versionNum) > 0 {
 						version, _ := strconv.Atoi(versionNum[1:2])
 						s.dbVersion = version
+						s.dbFullVersion = versionNum[1:]
 					}
 				}
 				log.Debug("db version: ", s.dbVersion)
@@ -1806,6 +1807,7 @@ func (s *session) mysqlServerVersion() {
 					if len(versionNum) > 0 {
 						value, _ := strconv.Atoi(versionNum[:1])
 						s.dbVersion = value
+						s.dbFullVersion = versionNum
 					}
 				}
 			case "innodb_large_prefix":
@@ -3522,6 +3524,13 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 	if len(node.Specs) == 0 {
 		s.appendErrorNo(ER_NOT_SUPPORTED_YET)
 		return
+	}
+
+	// 3.2.3bp10之前的版本 要对同一条语句有多个alter的语句做语法兼容性拦截
+	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
+		if len(node.Specs) > 1 && s.compareOBVersion(s.dbFullVersion, "3.2.3bp10") <= 0 {
+			s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+		}
 	}
 
 	var addColumn = 0
