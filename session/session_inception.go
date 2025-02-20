@@ -58,6 +58,8 @@ var (
 
 	// 匹配标识符,只能包含字母数字和下划线
 	regIdentified = regexp.MustCompile(`^[0-9a-zA-Z\_]*$`)
+
+	obVersionTimeStamp = 0
 )
 
 // var Keywords map[string]int = parser.GetKeywords()
@@ -1805,9 +1807,10 @@ func (s *session) mysqlServerVersion() {
 					s.dbType = DBTypeOceanBase
 					versionNum := strings.Split(value, " ")[1]
 					if len(versionNum) > 0 {
-						value, _ := strconv.Atoi(versionNum[:1])
-						s.dbVersion = value
+						val, _ := strconv.Atoi(versionNum[:1])
+						s.dbVersion = val
 						s.dbFullVersion = versionNum
+						obVersionTimeStamp, _ = strconv.Atoi(strings.Split(value, " ")[2][10:20])
 					}
 				}
 			case "innodb_large_prefix":
@@ -3528,8 +3531,15 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 
 	// 3.2.3bp10之前的版本 要对同一条语句有多个alter的语句做语法兼容性拦截
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		if len(node.Specs) > 1 && s.compareOBVersion(s.dbFullVersion, "3.2.3bp10") <= 0 {
-			s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+		if len(node.Specs) > 1 {
+			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") < 0 {
+				s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+			}
+			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") == 0 {
+				if obVersionTimeStamp != 0 && obVersionTimeStamp < 2023092816 {
+					s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+				}
+			}
 		}
 	}
 

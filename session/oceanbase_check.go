@@ -70,94 +70,45 @@ func (s *session) checkAddPrimaryKey(t *TableInfo, c *ast.AlterTableSpec) {
 // 0 表示 v1 == v2
 // -1 表示 v1 < v2
 func (s *session) compareOBVersion(v1, v2 string) int {
-	segments1 := splitVersion(v1)
-	segments2 := splitVersion(v2)
+	segments1 := parseSegments(v1)
+	segments2 := parseSegments(v2)
+
+	// 统一长度，不足补0
 	maxLen := max(len(segments1), len(segments2))
+	segments1 = fillZeros(segments1, maxLen)
+	segments2 = fillZeros(segments2, maxLen)
 
+	// 逐个段比较
 	for i := 0; i < maxLen; i++ {
-		s1 := getSegment(segments1, i)
-		s2 := getSegment(segments2, i)
-
-		if res := compareSegments(s1, s2); res != 0 {
-			return res
+		if segments1[i] > segments2[i] {
+			return 1
+		} else if segments1[i] < segments2[i] {
+			return -1
 		}
 	}
 	return 0
 }
 
-// 分割版本号为分段（按点分割）
-func splitVersion(v string) []string {
-	return strings.Split(v, ".")
+// 解析版本号为整数数组
+func parseSegments(v string) []int {
+	parts := strings.Split(v, ".")
+	segments := make([]int, len(parts))
+	for i, part := range parts {
+		num, _ := strconv.Atoi(part) // 格式固定，默认无错误
+		segments[i] = num
+	}
+	return segments
 }
 
-// 获取分段，超出长度返回空字符串
-func getSegment(segments []string, index int) string {
-	if index < len(segments) {
-		return segments[index]
+// 填充数组到指定长度，补0
+func fillZeros(segments []int, targetLen int) []int {
+	for len(segments) < targetLen {
+		segments = append(segments, 0)
 	}
-	return ""
+	return segments
 }
 
-// 比较两个版本段
-func compareSegments(s1, s2 string) int {
-	// 尝试将段转换为数字
-	num1, isNum1 := parseSegment(s1)
-	num2, isNum2 := parseSegment(s2)
-
-	// 情况1：两者均为数字 → 数值比较
-	if isNum1 && isNum2 {
-		return compareInt(num1, num2)
-	}
-
-	// 情况2：数字优先级高于非数字
-	if isNum1 {
-		return 1
-	}
-	if isNum2 {
-		return -1
-	}
-
-	// 情况3：均为非数字 → 字符串比较
-	return strings.Compare(s1, s2)
-}
-
-// 尝试将段解析为数字
-func parseSegment(s string) (int, bool) {
-	num, err := strconv.Atoi(s)
-	if err == nil {
-		return num, true
-	}
-	// 尝试提取前缀数字（如 "3bp10" → 3）
-	for i := range s {
-		if !isDigit(rune(s[i])) {
-			if i > 0 {
-				num, err := strconv.Atoi(s[:i])
-				if err == nil {
-					return num, true
-				}
-			}
-			break
-		}
-	}
-	return 0, false
-}
-
-// 判断字符是否为数字
-func isDigit(r rune) bool {
-	return r >= '0' && r <= '9'
-}
-
-// 比较两个整数
-func compareInt(a, b int) int {
-	if a > b {
-		return 1
-	} else if a < b {
-		return -1
-	}
-	return 0
-}
-
-// 辅助函数：返回最大值
+// 辅助函数：计算最大值
 func max(a, b int) int {
 	if a > b {
 		return a
