@@ -3684,8 +3684,12 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
+		println("确定s.dbVersion:" + strconv.Itoa(s.dbVersion))
+		println("确定s.dbVersion Full: " + s.dbFullVersion)
 		if addColumn >= 1 && addConstraint >= 1 {
+			println("确定addColumn >= 1 && addConstraint >= 1: ")
 			if s.dbVersion == 3 {
+				println("确定进入s.dbVersion 3")
 				// DoNothing for 3.x
 			} else {
 				s.appendErrorNo(ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT)
