@@ -25,7 +25,7 @@ func (s *session) checkPartitionTruncate(t *TableInfo, parts []model.CIStr) {
 		if found && s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
 			if s.dbVersion == 3 {
 				// Do Nothing, It's OnLine DDL under 3.x
-			} else if s.dbVersion == 4 {
+			} else if s.dbVersion > 3 {
 				s.appendErrorNo(ER_CANT_TRUNCATE_PARTITION)
 				break
 			}

@@ -2330,7 +2330,7 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 		if s.dbType == DBTypeOceanBase {
 			if s.dbVersion == 3 {
 				// Do Nothing, It's OnLine DDL under 3.x
-			} else if s.dbVersion == 4 {
+			} else if s.dbVersion > 3 {
 				s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
 			}
 		}
@@ -2362,7 +2362,7 @@ func (s *session) checkDropTable(node *ast.DropTableStmt, sql string) {
 			if s.dbType == DBTypeOceanBase {
 				if s.dbVersion == 3 {
 					// Do Nothing, It's OnLine DDL under 3.x
-				} else if s.dbVersion == 4 {
+				} else if s.dbVersion > 3 {
 					// s.appendErrorNo(ER_CANT_DROP_TABLE)
 				}
 			}
@@ -3685,7 +3685,11 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
 		if addColumn >= 1 && addConstraint >= 1 {
-			s.appendErrorNo(ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT)
+			if s.dbVersion == 3 {
+				// DoNothing for 3.x
+			} else {
+				s.appendErrorNo(ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT)
+			}
 		}
 	}
 
@@ -4112,15 +4116,23 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 					if isAutoIncrement {
 						if s.dbType == DBTypeOceanBase {
-							s.appendErrorNo(ER_CANT_MODIFY_AUTO_INCREMENT_COLUMN)
-							break
+							if s.dbVersion == 3 {
+								s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+							} else if s.dbVersion > 3 {
+								s.appendErrorNo(ER_CANT_MODIFY_AUTO_INCREMENT_COLUMN)
+								break
+							}
 						}
 					}
 
 					if isPrimary || isUnique {
 						if s.dbType == DBTypeOceanBase {
-							s.appendErrorNo(ER_CANT_MODIFY_PK_OR_UK_COLUMN)
-							break
+							if s.dbVersion == 3 {
+								s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+							} else if s.dbVersion > 3 {
+								s.appendErrorNo(ER_CANT_MODIFY_PK_OR_UK_COLUMN)
+								break
+							}
 						}
 					}
 				}
@@ -4410,6 +4422,10 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				} else if s.dbType == DBTypeOceanBase {
 					if s.inc.CheckOfflineDDL {
 						// s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						if s.dbVersion == 3 {
+							s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+						} else if s.dbVersion > 3 {
+						}
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
@@ -4444,8 +4460,12 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				} else {
 					if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-						s.appendErrorNo(ER_CANT_CHANGE_COLUMN_TYPE)
-						continue
+						if s.dbVersion == 3 {
+							s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+						} else if s.dbVersion > 3 {
+							s.appendErrorNo(ER_CANT_CHANGE_COLUMN_TYPE)
+							continue
+						}
 					}
 					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 				}
@@ -5174,7 +5194,11 @@ func (s *session) checkAlterTableDropIndex(t *TableInfo, indexName string) bool 
 func (s *session) checkDropPrimaryKey(t *TableInfo, c *ast.AlterTableSpec) {
 	log.Debug("checkDropPrimaryKey")
 	if s.inc.CheckOfflineDDL && s.dbType == DBTypeOceanBase {
-		s.appendErrorNo(ER_CANT_DROP_PRIMARY_KEY)
+		if s.dbVersion == 3 {
+			s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+		} else if s.dbVersion > 3 {
+			s.appendErrorNo(ER_CANT_DROP_PRIMARY_KEY)
+		}
 	}
 
 	s.checkAlterTableDropIndex(t, "PRIMARY")
@@ -5218,7 +5242,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbType == DBTypeOceanBase {
 						if s.dbVersion == 3 {
 							// Do Nothing, It's OnLine DDL under 3.x
-						} else if s.dbVersion == 4 {
+						} else if s.dbVersion > 3 {
 							s.appendErrorNo(ER_CANT_ADD_AUTO_INCREMENT_COLUMN)
 							break
 						}
@@ -5229,7 +5253,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbType == DBTypeOceanBase {
 						if s.dbVersion == 3 {
 							// Do Nothing, It's OnLine DDL under 3.x
-						} else if s.dbVersion == 4 {
+						} else if s.dbVersion > 3 {
 							s.appendErrorNo(ER_CANT_ADD_STORED_GENERATED_COLUMN)
 							break
 						}
@@ -5325,7 +5349,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				if s.dbType == DBTypeOceanBase {
 					if s.dbVersion == 3 {
 						// Do Nothing, It's OnLine DDL under 3.x
-					} else if s.dbVersion == 4 {
+					} else if s.dbVersion > 3 {
 						s.appendErrorNo(ER_CANT_ADD_STORED_GENERATED_COLUMN)
 						break
 					}
@@ -5366,7 +5390,7 @@ func (s *session) checkDropColumn(t *TableInfo, c *ast.AlterTableSpec) {
 		if s.inc.CheckOfflineDDL {
 			if s.dbVersion == 3 {
 				// Do Nothing, It's OnLine DDL under 3.x
-			} else if s.dbVersion == 4 {
+			} else if s.dbVersion > 3 {
 				s.appendErrorNo(ER_CANT_DROP_COLUMN)
 				return
 			}
