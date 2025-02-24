@@ -59,7 +59,8 @@ var (
 	// 匹配标识符,只能包含字母数字和下划线
 	regIdentified = regexp.MustCompile(`^[0-9a-zA-Z\_]*$`)
 
-	obVersionTimeStamp = 0
+	obVersionTimeStamp          = 0
+	ob3CheckModifyNullOrNotNull = 0
 )
 
 // var Keywords map[string]int = parser.GetKeywords()
@@ -3529,22 +3530,11 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 		return
 	}
 
-	// 3.2.3bp10之前的版本 要对同一条语句有多个alter的语句做语法兼容性拦截
-	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		if len(node.Specs) > 1 {
-			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") < 0 {
-				s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
-			}
-			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") == 0 {
-				if obVersionTimeStamp != 0 && obVersionTimeStamp < 2023092816 {
-					s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
-				}
-			}
-		}
-	}
-
 	var addColumn = 0
 	var addConstraint = 0
+	var changeColumn = 0
+	var modifyColumn = 0
+	var renameColumn = 0
 	for i, alter := range node.Specs {
 		switch alter.Tp {
 		case ast.AlterTableOption:
@@ -3574,6 +3564,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 
 		case ast.AlterTableModifyColumn:
 			s.checkModifyColumn(table, alter)
+			modifyColumn += 1
 
 		case ast.AlterTableChangeColumn:
 			s.appendErrorNo(ErCantChangeColumn, alter.OldColumnName.String())
@@ -3583,6 +3574,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 				s.appendErrorMsg("Can't execute this sql,the renamed columns' data maybe lost(pt-osc have a bug)!")
 			}
 			s.checkChangeColumn(table, alter)
+			changeColumn += 1
 
 		case ast.AlterTableRenameColumn:
 			if s.dbVersion < 80000 && s.dbType == DBTypeMysql {
@@ -3590,6 +3582,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 			} else {
 				s.checkRenameColumn(table, alter)
 			}
+			renameColumn += 1
 
 		case ast.AlterTableRenameTable:
 			s.checkAlterTableRenameTable(table, alter)
@@ -3684,15 +3677,26 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		println("确定s.dbVersion:" + strconv.Itoa(s.dbVersion))
-		println("确定s.dbVersion Full: " + s.dbFullVersion)
 		if addColumn >= 1 && addConstraint >= 1 {
-			println("确定addColumn >= 1 && addConstraint >= 1: ")
 			if s.dbVersion == 3 {
-				println("确定进入s.dbVersion 3")
 				// DoNothing for 3.x
 			} else {
 				s.appendErrorNo(ER_CANT_ADD_COLUMNS_AND_CONSTRAINTS_IN_ONE_STATEMENT)
+			}
+		}
+	}
+
+	// 3.2.3bp10之前的版本 要对同一条语句有多个alter的语句做语法兼容性拦截
+	// 多条alter语句，只包含加列、改列类型，不含添加约束
+	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
+		if addColumn+renameColumn > 1 && ob3CheckModifyNullOrNotNull > 0 {
+			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") < 0 {
+				s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+			}
+			if s.compareOBVersion(s.dbFullVersion, "3.2.3.3") == 0 {
+				if obVersionTimeStamp != 0 && obVersionTimeStamp < 2023092816 {
+					s.appendErrorNo(ER_NOT_ALLOW_MULTI_ALTER_STATEMENT_IN_ONE_STATEMENT)
+				}
 			}
 		}
 	}
@@ -4115,6 +4119,10 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 							isUnique = true
 						case ast.ColumnOptionAutoIncrement:
 							isAutoIncrement = true
+						case ast.ColumnOptionNotNull:
+							ob3CheckModifyNullOrNotNull += 1
+						case ast.ColumnOptionNull:
+							ob3CheckModifyNullOrNotNull += 1
 						}
 					}
 
