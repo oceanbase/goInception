@@ -43,7 +43,11 @@ func (s *session) checkAlterPartitionRule(t *TableInfo, opts *ast.PartitionOptio
 	}
 
 	if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL {
-		s.appendErrorNo(ER_CANT_ALTER_PARTITION_RULE)
+		if s.dbVersion == 3 {
+			s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+		} else if s.dbVersion > 3 {
+			s.appendErrorNo(ER_CANT_ALTER_PARTITION_RULE)
+		}
 	}
 }
 
@@ -61,7 +65,11 @@ func (s *session) checkAddPrimaryKey(t *TableInfo, c *ast.AlterTableSpec) {
 		for _, key := range c.Constraint.Keys {
 			primaryNames = append(primaryNames, key.Column.Name.O)
 		}
-		s.appendErrorNo(ER_CANT_ADD_PRIMARY_KEY)
+		if s.dbVersion == 3 {
+			s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+		} else if s.dbVersion > 3 {
+			s.appendErrorNo(ER_CANT_ADD_PRIMARY_KEY)
+		}
 	}
 }
 

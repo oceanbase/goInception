@@ -3146,7 +3146,13 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 			if s.inc.EnableSetCharset && s.dbType != DBTypeOceanBase {
 				s.checkCharset(opt.StrValue)
 			} else {
-				s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+				if s.inc.CheckOfflineDDL && s.dbType == DBTypeOceanBase {
+					if s.dbVersion == 3 {
+						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+					} else if s.dbVersion > 3 {
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+					}
+				}
 			}
 			character = opt.StrValue
 		case ast.TableOptionCollate:
@@ -4446,11 +4452,23 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				str := string([]byte(foundField.Type)[:4])
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					if s.dbVersion == 3 {
+						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+					} else if s.dbVersion > 3 {
+						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					}
 				} else if s.dbType == DBTypeOceanBase {
+					if s.dbVersion == 3 {
+						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+					} else if s.dbVersion > 3 {
+					}
 
 				} else if GetDataTypeLength(fieldType)[0] <= GetDataTypeLength(foundField.Type)[0] {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					if s.dbVersion == 3 {
+						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+					} else if s.dbVersion > 3 {
+						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					}
 				}
 			default:
 				// log.Info(fieldType, ":", foundField.Type)
@@ -5274,8 +5292,12 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if isPrimary || isUnique {
 					if s.dbType == DBTypeOceanBase {
-						s.appendErrorNo(ER_CANT_ADD_PK_OR_UK_COLUMN)
-						break
+						if s.dbVersion == 3 {
+							s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+						} else if s.dbVersion > 3 {
+							s.appendErrorNo(ER_CANT_ADD_PK_OR_UK_COLUMN)
+							break
+						}
 					}
 					rows := t.Indexes
 					indexName := ""
