@@ -3705,6 +3705,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 				}
 			}
 		}
+		ob3CheckModifyNullOrNotNull = 0
 	}
 
 	s.checkMultiPartitionParts(node.Specs)
@@ -4128,7 +4129,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 						case ast.ColumnOptionNotNull:
 							ob3CheckModifyNullOrNotNull += 1
 						case ast.ColumnOptionNull:
-							ob3CheckModifyNullOrNotNull += 1
+
 						}
 					}
 
