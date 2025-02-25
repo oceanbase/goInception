@@ -4441,7 +4441,13 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.inc.CheckOfflineDDL {
 						// s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 						if s.dbVersion == 3 {
-							s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+							// 同为varchar
+							if strings.Contains(fieldType, "varchar") && strings.Contains(str, "varchar") {
+
+							} else {
+								s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
+							}
+
 						} else if s.dbVersion > 3 {
 						}
 					}
