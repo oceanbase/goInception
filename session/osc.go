@@ -342,9 +342,9 @@ func (s *session) mysqlExecuteWithGhost(r *Record) {
 	}
 
 	if (s.dbType == DBTypeOceanBase){
-		log.debug(" dbType is oceanbase")
+		log.Debug(" dbType is oceanbase")
 	}else {
-		log.debug(" dbType is not oceanbase")
+		log.Debug(" dbType is not oceanbase")
 		buf.WriteString(" --critical-load='")
 		buf.WriteString("Threads_running=")
 		buf.WriteString(strconv.Itoa(s.osc.OscCriticalThreadRunning))
