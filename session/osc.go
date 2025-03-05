@@ -341,19 +341,24 @@ func (s *session) mysqlExecuteWithGhost(r *Record) {
 		buf.WriteString(fmt.Sprintf(" --force-table-names=%s", s.ghost.GhostForceTableNames))
 	}
 
-	buf.WriteString(" --critical-load='")
-	buf.WriteString("Threads_running=")
-	buf.WriteString(strconv.Itoa(s.osc.OscCriticalThreadRunning))
-	buf.WriteString(",threads_connected=")
-	buf.WriteString(strconv.Itoa(s.osc.OscCriticalThreadConnected))
-	buf.WriteString("' ")
-
-	buf.WriteString(" --max-load='")
-	buf.WriteString("Threads_running=")
-	buf.WriteString(strconv.Itoa(s.osc.OscMaxThreadRunning))
-	buf.WriteString(",threads_connected=")
-	buf.WriteString(strconv.Itoa(s.osc.OscMaxThreadConnected))
-	buf.WriteString("' ")
+	if (s.dbType == DBTypeOceanBase){
+		log.debug(" dbType is oceanbase")
+	}else {
+		log.debug(" dbType is not oceanbase")
+		buf.WriteString(" --critical-load='")
+		buf.WriteString("Threads_running=")
+		buf.WriteString(strconv.Itoa(s.osc.OscCriticalThreadRunning))
+		buf.WriteString(",threads_connected=")
+		buf.WriteString(strconv.Itoa(s.osc.OscCriticalThreadConnected))
+		buf.WriteString("' ")
+	
+		buf.WriteString(" --max-load='")
+		buf.WriteString("Threads_running=")
+		buf.WriteString(strconv.Itoa(s.osc.OscMaxThreadRunning))
+		buf.WriteString(",threads_connected=")
+		buf.WriteString(strconv.Itoa(s.osc.OscMaxThreadConnected))
+		buf.WriteString("' ")
+	}
 
 	buf.WriteString(" --execute ")
 
