@@ -2332,7 +2332,7 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 			if s.dbVersion == 3 {
 				// Do Nothing, It's OnLine DDL under 3.x
 			} else if s.dbVersion > 3 {
-				s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
+				// s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
 			}
 		}
 
