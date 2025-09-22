@@ -3405,6 +3405,9 @@ func (s *session) checkTableCharsetCollation(character, collation string) {
 	if !charset.ValidCharsetAndCollation(character, collation) {
 		s.appendErrorMsgf("COLLATION '%s' is not valid for CHARACTER SET '%s'!", collation, character)
 	} else {
+		if s.dbType == DBTypeOceanBase {
+				return
+			}
 		if s.dbVersion < 80000 {
 			if collationId, ok := mysql.CollationNames[strings.ToLower(collation)]; ok {
 				if collationId >= 255 {
