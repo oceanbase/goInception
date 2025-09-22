@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - release/*
+      - Integration
   pull_request:
     types: [opened, synchronize, reopened]
 
