@@ -58,6 +58,8 @@ TiDB date path, create some TiDB system table. If null, create in memory. Advice
 
 all **[audit options](../options)** in here
 
+New option `ob_online_ddl_skip_osc`: OceanBase only. When enabled, execution skips both pt-osc and gh-ost and runs native DDL directly.
+
 ### [osc]
 
 all **[pt-osc options](../osc)** in here

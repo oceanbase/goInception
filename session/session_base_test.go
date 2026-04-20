@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/hanchuanchuan/goInception/ast"
+	"github.com/hanchuanchuan/goInception/config"
 	"github.com/hanchuanchuan/goInception/parser"
 	"github.com/hanchuanchuan/goInception/sessionctx/variable"
 )
@@ -61,6 +62,91 @@ func Test_checkDDLInstantMySQL(t *testing.T) {
 					t.Errorf("canInstant is %v, but excepted %v: sql: %v", canInstant, test.mysql57, test.sql)
 				}
 			}
+		}
+	}
+}
+
+func Test_checkAlterUseOsc(t *testing.T) {
+	tests := []struct {
+		name         string
+		dbType       int
+		skipOSC      bool
+		checkOffline bool
+		oscOn        bool
+		ghostOn      bool
+		minTableMB   uint
+		tableSizeMB  uint
+		expectUse    bool
+	}{
+		{
+			name:         "ob skip tools when osc enabled",
+			dbType:       DBTypeOceanBase,
+			skipOSC:      true,
+			checkOffline: true,
+			oscOn:        true,
+			minTableMB:   16,
+			tableSizeMB:  64,
+			expectUse:    false,
+		},
+		{
+			name:         "ob skip tools when ghost enabled",
+			dbType:       DBTypeOceanBase,
+			skipOSC:      true,
+			checkOffline: false,
+			ghostOn:      true,
+			minTableMB:   0,
+			tableSizeMB:  1,
+			expectUse:    false,
+		},
+		{
+			name:         "ob keep original logic when switch disabled",
+			dbType:       DBTypeOceanBase,
+			skipOSC:      false,
+			checkOffline: true,
+			oscOn:        true,
+			minTableMB:   16,
+			tableSizeMB:  32,
+			expectUse:    true,
+		},
+		{
+			name:         "mysql unaffected by ob switch",
+			dbType:       DBTypeMysql,
+			skipOSC:      true,
+			checkOffline: true,
+			oscOn:        true,
+			minTableMB:   16,
+			tableSizeMB:  32,
+			expectUse:    true,
+		},
+		{
+			name:        "table below threshold should not use osc",
+			dbType:      DBTypeMysql,
+			oscOn:       true,
+			minTableMB:  16,
+			tableSizeMB: 8,
+			expectUse:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		s := &session{
+			myRecord: &Record{},
+			dbType:   tt.dbType,
+			inc: config.Inc{
+				ObOnlineDDLSkipOsc: tt.skipOSC,
+				CheckOfflineDDL:    tt.checkOffline,
+			},
+			osc: config.Osc{
+				OscOn:           tt.oscOn,
+				OscMinTableSize: tt.minTableMB,
+			},
+			ghost: config.Ghost{
+				GhostOn: tt.ghostOn,
+			},
+		}
+		s.checkAlterUseOsc(&TableInfo{TableSize: tt.tableSizeMB})
+		if s.myRecord.useOsc != tt.expectUse {
+			t.Fatalf("%s: useOsc=%v, expected=%v", tt.name, s.myRecord.useOsc, tt.expectUse)
 		}
 	}
 }

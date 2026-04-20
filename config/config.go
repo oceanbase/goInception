@@ -310,6 +310,8 @@ type Inc struct {
 	EnableSqlStatistic bool `toml:"enable_sql_statistic" json:"enable_sql_statistic"`
 	// 在MySQL8.0检测是否支持 ALGORITHM=INSTANT, 当支持时自动关闭pt-osc/gh-ost.
 	EnableDDLInstant bool `toml:"enable_ddl_instant" json:"enable_ddl_instant"`
+	// OceanBase在线DDL是否跳过pt-osc/gh-ost并直接原生执行
+	ObOnlineDDLSkipOsc bool `toml:"ob_online_ddl_skip_osc" json:"ob_online_ddl_skip_osc"`
 
 	// explain判断受影响行数时使用的规则, 默认值"first"
 	// 可选值: "first", "max"
@@ -711,6 +713,7 @@ var defaultConf = Config{
 		CheckIdentifierLower:  false,
 		CheckReadOnly:         true,
 		EnableDDLInstant:      true,
+		ObOnlineDDLSkipOsc:    false,
 		SqlSafeUpdates:        -1,
 		LockWaitTimeout:       -1,
 		SupportCharset:        "utf8,utf8mb4",

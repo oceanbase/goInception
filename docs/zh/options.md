@@ -52,6 +52,7 @@ default_charset `v1.0.5` | "utf8mb4"    |   string  | 设置连接数据库的�
 disable_types `v1.2.6` | ""    |   string  | 禁用数据库类型,多个时以逗号分隔(合并参数 enable_blob_type,enable_json_type,enable_enum_set_bit,enable_timestamp_type)
 enable_autoincrement_unsigned   |  false    |   true,false     |  自增列是不是要为无符号型
 enable_any_statement `v1.2.5`  |  false    |   true,false     |  是否允许所有语法(仍受其他开关影响,如删表等).[详细说明见PR](https://github.com/hanchuanchuan/goInception/pull/301)
+ob_online_ddl_skip_osc `vNext` | false | true,false | 仅对 OceanBase 生效。开启后执行阶段不再调用 pt-osc/gh-ost，直接使用原生 DDL（名称含 osc，但行为同时覆盖 gh-ost）。
 enable_blob_not_null `v1.0` |  false    |   true,false     |   是否允许blob/text/json类型置为`not null`,默认为`false`,即不允许
 enable_blob_type  `已弃用` |  false    |   true,false     |   检查是不是支持BLOB字段，包括建表、修改列、新增列操作 (使用参数`disable_types`代替)
 enable_change_column `v1.0.3` |  true    |   true,false     |   设置是否支持change column语法,默认值`true`
