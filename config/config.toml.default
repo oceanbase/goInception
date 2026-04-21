@@ -64,7 +64,7 @@ check_read_only = true
 # 在MySQL8.0检测是否支持ALGORITHM=INSTANT, 当支持时自动关闭pt-osc/gh-ost.
 enable_ddl_instant = true
 
-# OceanBase在线DDL是否跳过pt-osc/gh-ost并直接原生执行.
+# OceanBase在线DDL是否按OB4.x白名单跳过pt-osc/gh-ost(未知语法按非在线处理).
 ob_online_ddl_skip_osc = false
 
 # 是否检查字段存在多个索引，比如索引 (a,b) 与索引 (a) 中，a字段就是被重复索引的，应当只保留索引 (a,b)

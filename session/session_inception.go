@@ -3525,6 +3525,7 @@ func (s *session) checkAlterTable(node *ast.AlterTableStmt, sql string, mergeOnl
 
 	// 设置osc开关
 	s.checkAlterUseOsc(table)
+	s.maybeSkipOscForOBOnlineDDL(node, table)
 	s.checkDDLInstant(node, table)
 
 	// 如果修改了表名,则调整回滚语句

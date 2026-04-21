@@ -58,7 +58,7 @@ TiDB date path, create some TiDB system table. If null, create in memory. Advice
 
 all **[audit options](../options)** in here
 
-New option `ob_online_ddl_skip_osc`: OceanBase only. When enabled, execution skips both pt-osc and gh-ost and runs native DDL directly.
+New option `ob_online_ddl_skip_osc`: OceanBase only. When enabled, goInception only skips pt-osc/gh-ost for OB ALTER statements that are confidently classified as online by a conservative OB4.x whitelist. Unknown or unsupported syntax keeps the original tool path. This switch is independent from `check_offline_ddl`.
 
 ### [osc]
 
