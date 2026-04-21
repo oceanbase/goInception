@@ -60,7 +60,7 @@ TiDB数据库目录，默认值 `/tmp/tidb`，该参数会创建少量TiDB的系
 
 所有的 **[审核选项](options.html)** 在此处设置
 
-新增参数 `ob_online_ddl_skip_osc`：仅对 OceanBase 生效。开启后执行阶段会跳过 pt-osc/gh-ost，直接执行原生 DDL（名称含 `osc`，但行为同样覆盖 gh-ost）。
+新增参数 `ob_online_ddl_skip_osc`：仅对 OceanBase 生效。开启后会使用 OB4.x 保守白名单判定 ALTER 是否在线，只有明确判定为在线时才跳过 pt-osc/gh-ost；未知或未覆盖语法保持原工具路径。该开关与 `check_offline_ddl` 独立。
 
 ### [osc]
 

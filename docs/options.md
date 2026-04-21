@@ -49,7 +49,7 @@ check_identifier_lower  `v1.2.5` |  false    |   true,false     | If the Identif
 |disable_types `v1.2.6` | ""    |   string  | Disable database types, separate with commas (The following parameters are automatically merged: enable_blob_type,enable_json_type,enable_enum_set_bit,enable_timestamp_type)
 |enable_autoincrement_unsigned|FALSE|true,false|If the auto_increment column should be unsigned.|
 |enable_any_statement `v1.2.5`|FALSE|true,false|If all SQL approved.[More](https://github.com/hanchuanchuan/goInception/pull/301)|
-|ob_online_ddl_skip_osc `vNext`|FALSE|true,false|OceanBase only. When enabled, execution skips both pt-osc and gh-ost and runs native DDL directly (the name contains osc for compatibility).|
+|ob_online_ddl_skip_osc `vNext`|FALSE|true,false|OceanBase only. When enabled, goInception uses a conservative OB4.x ALTER whitelist and skips pt-osc/gh-ost only for statements confidently classified as online DDL. Unknown/unsupported patterns fall back to non-online (keep tool path). Runtime-dependent scenarios (for example mlog, fulltext/multi-value/vector index capability) are treated conservatively and are not force-skipped.|
 |enable_blob_not_null `v1.0`|FALSE|true,false|If set the default value of `blob/text/json` not null are approved, default is false, means not allowed.|
 |enable_blob_type `Deprecated`|FALSE|true,false|If check support of BLOB column, include create,alter etc. (use `disable_types` instead)|
 |enable_change_column `v1.0.3`|TRUE|true,false|If support change column syntax, default true.|

@@ -61,12 +61,6 @@ var regOscPercent = regexp.MustCompile(`^Copying .*? (\d+)% (\d+:\d+|\d+:\d+:\d+
 var regGhostPercent *regexp.Regexp = regexp.MustCompile(`^Copy:.*?(\d+).\d+%;.*?ETA: (.*)?`)
 
 func (s *session) checkAlterUseOsc(t *TableInfo) {
-	// OceanBase开启原生DDL后,统一跳过pt-osc/gh-ost工具执行.
-	if s.dbType == DBTypeOceanBase && s.inc.ObOnlineDDLSkipOsc {
-		s.myRecord.useOsc = false
-		return
-	}
-
 	if (s.osc.OscOn || s.ghost.GhostOn) && (s.osc.OscMinTableSize == 0 || t.TableSize >= s.osc.OscMinTableSize) {
 		s.myRecord.useOsc = true
 	} else {
