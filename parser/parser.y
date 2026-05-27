@@ -318,6 +318,7 @@ import (
 	deallocate             "DEALLOCATE"
 	definer                "DEFINER"
 	delayKeyWrite          "DELAY_KEY_WRITE"
+	deltaFormat            "DELTA_FORMAT"
 	directory              "DIRECTORY"
 	disable                "DISABLE"
 	discard                "DISCARD"
@@ -326,6 +327,8 @@ import (
 	dynamic                "DYNAMIC"
 	dynamicPartitionPolicy "DYNAMIC_PARTITION_POLICY"
 	enable                 "ENABLE"
+	enableMacroBlockBloomFilter "ENABLE_MACRO_BLOCK_BLOOM_FILTER"
+	each                   "EACH"
 	end                    "END"
 	engine                 "ENGINE"
 	engines                "ENGINES"
@@ -345,6 +348,7 @@ import (
 	function               "FUNCTION"
 	grants                 "GRANTS"
 	hash                   "HASH"
+	heap                   "HEAP"
 	history                "HISTORY"
 	hour                   "HOUR"
 	identified             "IDENTIFIED"
@@ -374,6 +378,7 @@ import (
 	maxUpdatesPerHour      "MAX_UPDATES_PER_HOUR"
 	maxUserConnections     "MAX_USER_CONNECTIONS"
 	merge                  "MERGE"
+	mergeEngine            "MERGE_ENGINE"
 	minRows                "MIN_ROWS"
 	names                  "NAMES"
 	national               "NATIONAL"
@@ -382,6 +387,7 @@ import (
 	none                   "NONE"
 	offset                 "OFFSET"
 	only                   "ONLY"
+	organization           "ORGANIZATION"
 	parser                 "PARSER"
 	partitioning           "PARTITIONING"
 	password               "PASSWORD"
@@ -423,6 +429,7 @@ import (
 	share                  "SHARE"
 	shared                 "SHARED"
 	signed                 "SIGNED"
+	skipIndexLevel         "SKIP_INDEX_LEVEL"
 	slave                  "SLAVE"
 	slow                   "SLOW"
 	snapshot               "SNAPSHOT"
@@ -795,6 +802,9 @@ import (
 	PartitionNameListOpt          "table partition names list optional"
 	PartitionNumOpt               "PARTITION NUM option"
 	PartitionOpt                  "Partition option"
+	ColumnGroupOpt                "OceanBase column group option"
+	ColumnGroupList               "OceanBase column group list"
+	ColumnGroupItem               "OceanBase column group item"
 	PartDefValuesOpt              "VALUES {LESS THAN {(expr | value_list) | MAXVALUE} | IN {value_list}"
 	PartDefOptionList             "PartDefOption list"
 	PartDefOption                 "COMMENT [=] xxx | TABLESPACE [=] tablespace_name | ENGINE [=] xxx"
@@ -983,6 +993,7 @@ import (
 	FieldsOrColumns   "Fields or columns"
 	GetFormatSelector "{DATE|DATETIME|TIME|TIMESTAMP}"
 	TableModeValue    "TABLE_MODE value"
+	MergeEngineValue  "MERGE_ENGINE value"
 
 %type	<item>
 	BoolLiteral "Boolean literal"
@@ -3133,7 +3144,7 @@ DropTableGroupStmt:
  *
  *******************************************************************/
 CreateTableStmt:
-	"CREATE" "TABLE" IfNotExists TableName TableElementListOpt CreateTableOptionListOpt PartitionOpt DuplicateOpt AsOpt CreateTableSelectOpt
+	"CREATE" "TABLE" IfNotExists TableName TableElementListOpt CreateTableOptionListOpt PartitionOpt ColumnGroupOpt DuplicateOpt AsOpt CreateTableSelectOpt
 	{
 		stmt := $5.(*ast.CreateTableStmt)
 		stmt.Table = $4.(*ast.TableName)
@@ -3142,8 +3153,11 @@ CreateTableStmt:
 		if $7 != nil {
 			stmt.Partition = $7.(*ast.PartitionOptions)
 		}
-		stmt.OnDuplicate = $8.(ast.OnDuplicateKeyHandlingType)
-		stmt.Select = $10.(*ast.CreateTableStmt).Select
+		if $8 != nil {
+			stmt.ColumnGroup = $8.(*ast.ColumnGroupOption)
+		}
+		stmt.OnDuplicate = $9.(ast.OnDuplicateKeyHandlingType)
+		stmt.Select = $11.(*ast.CreateTableStmt).Select
 		$$ = stmt
 	}
 |	"CREATE" "TABLE" IfNotExists TableName LikeTableWithOrWithoutParen
@@ -3190,6 +3204,35 @@ PartitionOpt:
 			return 1
 		}
 		$$ = opt
+	}
+
+ColumnGroupOpt:
+	{
+		$$ = nil
+	}
+|	"WITH" "COLUMN" "GROUP" '(' ColumnGroupList ')'
+	{
+		$$ = &ast.ColumnGroupOption{Items: $5.([]ast.ColumnGroupType)}
+	}
+
+ColumnGroupList:
+	ColumnGroupItem
+	{
+		$$ = []ast.ColumnGroupType{$1.(ast.ColumnGroupType)}
+	}
+|	ColumnGroupList ',' ColumnGroupItem
+	{
+		$$ = append($1.([]ast.ColumnGroupType), $3.(ast.ColumnGroupType))
+	}
+
+ColumnGroupItem:
+	"ALL" "COLUMNS"
+	{
+		$$ = ast.ColumnGroupAllColumns
+	}
+|	"EACH" "COLUMN"
+	{
+		$$ = ast.ColumnGroupEachColumn
 	}
 
 SubPartitionMethod:
@@ -4704,6 +4747,7 @@ UnReservedKeyword:
 |	"DUPLICATE"
 |	"DYNAMIC"
 |	"DYNAMIC_PARTITION_POLICY"
+|	"EACH"
 |	"END"
 |	"ENGINE"
 |	"ENGINES"
@@ -4719,6 +4763,7 @@ UnReservedKeyword:
 |	"FULL"
 |	"GLOBAL"
 |	"HASH"
+|	"HEAP"
 |	"HOUR"
 |	"LESS"
 |	"LIST"
@@ -4737,6 +4782,7 @@ UnReservedKeyword:
 |	"ROLLBACK"
 |	"SESSION"
 |	"SIGNED"
+|	"SKIP_INDEX_LEVEL"
 |	"SNAPSHOT"
 |	"START"
 |	"STATUS"
@@ -4784,12 +4830,14 @@ UnReservedKeyword:
 |	"GRANTS"
 |	"TRIGGERS"
 |	"DELAY_KEY_WRITE"
+|	"DELTA_FORMAT"
 |	"ISOLATION"
 |	"JSON"
 |	"REPEATABLE"
 |	"COMMITTED"
 |	"UNCOMMITTED"
 |	"ONLY"
+|	"ORGANIZATION"
 |	"SERIALIZABLE"
 |	"LEVEL"
 |	"VARIABLES"
@@ -4800,6 +4848,7 @@ UnReservedKeyword:
 |	"SQL_NO_CACHE"
 |	"DISABLE"
 |	"ENABLE"
+|	"ENABLE_MACRO_BLOCK_BLOOM_FILTER"
 |	"REVERSE"
 |	"PRIVILEGES"
 |	"NO"
@@ -4844,6 +4893,7 @@ UnReservedKeyword:
 |	"DEFINER"
 |	"INVOKER"
 |	"MERGE"
+|	"MERGE_ENGINE"
 |	"TEMPTABLE"
 |	"UNDEFINED"
 |	"SECURITY"
@@ -8026,6 +8076,30 @@ TableOption:
 	{
 		$$ = &ast.TableOption{Tp: ast.TableOptionPctFree, UintValue: $3.(uint64)}
 	}
+|	"ORGANIZATION" "INDEX"
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionOrganizationIndex}
+	}
+|	"ORGANIZATION" "HEAP"
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionOrganizationHeap}
+	}
+|	"DELTA_FORMAT" EqOpt stringLit
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionDeltaFormat, StrValue: $3}
+	}
+|	"ENABLE_MACRO_BLOCK_BLOOM_FILTER" EqOpt BoolLiteral
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionEnableMacroBlockBloomFilter, BoolValue: $3.(bool)}
+	}
+|	"MERGE_ENGINE" EqOpt MergeEngineValue
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionMergeEngine, StrValue: $3}
+	}
+|	"SKIP_INDEX_LEVEL" EqOpt LengthNum
+	{
+		$$ = &ast.TableOption{Tp: ast.TableOptionSkipIndexLevel, UintValue: $3.(uint64)}
+	}
 |	"DYNAMIC_PARTITION_POLICY" EqOpt '(' DynamicPartitionPolicyInner ')'
 	{
 		$$ = &ast.TableOption{Tp: ast.TableOptionDynamicPartitionPolicy, StrValue: $4.(string)}
@@ -8073,6 +8147,16 @@ BoolLiteral:
 |	"FALSE"
 	{
 		$$ = false
+	}
+
+MergeEngineValue:
+	Identifier
+	{
+		$$ = strings.ToUpper($1)
+	}
+|	stringLit
+	{
+		$$ = strings.ToUpper($1)
 	}
 
 TableModeValue:

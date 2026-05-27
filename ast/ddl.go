@@ -828,6 +828,7 @@ type CreateTableStmt struct {
 	Constraints []*Constraint
 	Options     []*TableOption
 	Partition   *PartitionOptions
+	ColumnGroup *ColumnGroupOption
 	OnDuplicate OnDuplicateKeyHandlingType
 	Select      ResultSetNode
 }
@@ -883,6 +884,13 @@ func (n *CreateTableStmt) Restore(ctx *RestoreCtx) error {
 		ctx.WritePlain(" ")
 		if err := n.Partition.Restore(ctx); err != nil {
 			return errors.Annotate(err, "An error occurred while splicing CreateTableStmt Partition")
+		}
+	}
+
+	if n.ColumnGroup != nil {
+		ctx.WritePlain(" ")
+		if err := n.ColumnGroup.Restore(ctx); err != nil {
+			return errors.Annotate(err, "An error occurred while splicing CreateTableStmt ColumnGroup")
 		}
 	}
 
@@ -951,8 +959,63 @@ func (n *CreateTableStmt) Accept(v Visitor) (Node, bool) {
 		}
 		n.Partition = node.(*PartitionOptions)
 	}
+	if n.ColumnGroup != nil {
+		node, ok := n.ColumnGroup.Accept(v)
+		if !ok {
+			return n, false
+		}
+		n.ColumnGroup = node.(*ColumnGroupOption)
+	}
 
 	return v.Leave(n)
+}
+
+// ColumnGroupType is the type for OceanBase WITH COLUMN GROUP items.
+type ColumnGroupType int
+
+// Column group item types for OceanBase hybrid row/column store.
+const (
+	ColumnGroupAllColumns ColumnGroupType = iota
+	ColumnGroupEachColumn
+)
+
+// ColumnGroupOption specifies OceanBase WITH COLUMN GROUP table option.
+type ColumnGroupOption struct {
+	node
+	Items []ColumnGroupType
+}
+
+func (n *ColumnGroupOption) columnGroupTypeString(tp ColumnGroupType) string {
+	switch tp {
+	case ColumnGroupAllColumns:
+		return "ALL COLUMNS"
+	case ColumnGroupEachColumn:
+		return "EACH COLUMN"
+	default:
+		return ""
+	}
+}
+
+// Restore implements Node interface.
+func (n *ColumnGroupOption) Restore(ctx *RestoreCtx) error {
+	ctx.WriteKeyWord("WITH COLUMN GROUP(")
+	for i, item := range n.Items {
+		if i > 0 {
+			ctx.WritePlain(", ")
+		}
+		ctx.WriteKeyWord(n.columnGroupTypeString(item))
+	}
+	ctx.WritePlain(")")
+	return nil
+}
+
+// Accept implements Node Accept interface.
+func (n *ColumnGroupOption) Accept(v Visitor) (Node, bool) {
+	newNode, skipChildren := v.Enter(n)
+	if skipChildren {
+		return v.Leave(newNode)
+	}
+	return v.Leave(newNode)
 }
 
 // CreateTableGroupStmt is a statement to create a table group.
@@ -1887,6 +1950,12 @@ const (
 	TableOptionTabletSize
 	TableOptionPctFree
 	TableOptionDynamicPartitionPolicy
+	TableOptionOrganizationIndex
+	TableOptionOrganizationHeap
+	TableOptionDeltaFormat
+	TableOptionEnableMacroBlockBloomFilter
+	TableOptionMergeEngine
+	TableOptionSkipIndexLevel
 	TableOptionPlacementPrimaryRegion       = TableOptionType(PlacementOptionPrimaryRegion)
 	TableOptionPlacementRegions             = TableOptionType(PlacementOptionRegions)
 	TableOptionPlacementFollowerCount       = TableOptionType(PlacementOptionFollowerCount)
@@ -2177,6 +2246,30 @@ func (n *TableOption) Restore(ctx *format.RestoreCtx) error {
 		ctx.WritePlain("(")
 		ctx.WritePlain(n.StrValue)
 		ctx.WritePlain(")")
+	case TableOptionOrganizationIndex:
+		ctx.WriteKeyWord("ORGANIZATION INDEX")
+	case TableOptionOrganizationHeap:
+		ctx.WriteKeyWord("ORGANIZATION HEAP")
+	case TableOptionDeltaFormat:
+		ctx.WriteKeyWord("DELTA_FORMAT ")
+		ctx.WritePlain("= ")
+		ctx.WriteString(n.StrValue)
+	case TableOptionEnableMacroBlockBloomFilter:
+		ctx.WriteKeyWord("ENABLE_MACRO_BLOCK_BLOOM_FILTER ")
+		ctx.WritePlain("= ")
+		if n.BoolValue {
+			ctx.WritePlain("true")
+		} else {
+			ctx.WritePlain("false")
+		}
+	case TableOptionMergeEngine:
+		ctx.WriteKeyWord("MERGE_ENGINE ")
+		ctx.WritePlain("= ")
+		ctx.WritePlain(n.StrValue)
+	case TableOptionSkipIndexLevel:
+		ctx.WriteKeyWord("SKIP_INDEX_LEVEL ")
+		ctx.WritePlain("= ")
+		ctx.WritePlainf("%d", n.UintValue)
 	case TableOptionPlacementPrimaryRegion, TableOptionPlacementRegions, TableOptionPlacementFollowerCount, TableOptionPlacementLeaderConstraints, TableOptionPlacementLearnerCount, TableOptionPlacementVoterCount, TableOptionPlacementSchedule, TableOptionPlacementConstraints, TableOptionPlacementFollowerConstraints, TableOptionPlacementVoterConstraints, TableOptionPlacementLearnerConstraints, TableOptionPlacementPolicy:
 		placementOpt := PlacementOption{
 			Tp:        PlacementOptionType(n.Tp),
