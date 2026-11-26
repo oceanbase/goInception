@@ -4489,6 +4489,9 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 		// 列类型转换审核
 		fieldType := nc.Tp.CompactStr()
 		if s.inc.CheckColumnTypeChange && fieldType != foundField.Type {
+			reportTypeChange := func() {
+				s.appendErrorNo(ER_CHANGE_COLUMN_TYPE, t.Name+"."+nc.Name.Name.O, foundField.Type, nc.Tp.InfoSchemaStr())
+			}
 			switch nc.Tp.Tp {
 			case mysql.TypeDecimal, mysql.TypeNewDecimal,
 				mysql.TypeVarchar,
@@ -4505,10 +4508,9 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				str := string([]byte(foundField.Type)[:length])
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				} else if s.dbType == DBTypeOceanBase {
 					if s.inc.CheckOfflineDDL {
-						// s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 						if s.dbVersion == 3 {
 							// 同为varchar
 							if strings.Contains(fieldType, "varchar") && strings.Contains(str, "varchar") {
@@ -4521,7 +4523,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 						}
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				}
 			case mysql.TypeString:
 				str := string([]byte(foundField.Type)[:4])
@@ -4530,7 +4532,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						reportTypeChange()
 					}
 				} else if s.dbType == DBTypeOceanBase {
 					if s.dbVersion == 3 {
@@ -4542,7 +4544,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						reportTypeChange()
 					}
 				}
 			default:
@@ -4556,9 +4558,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				newTypeIndex, ok2 := IntegerOrderedMaps2[nc.Tp.Tp]
 				if ok1 && ok2 {
 					if newTypeIndex < oldTypeIndex {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-							fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-							foundField.Type, fieldType)
+						reportTypeChange()
 					}
 					// 整型有符号/无符号互转在 OceanBase 上为离线 DDL（需重整表数据）
 					if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL && s.dbVersion > 3 {
@@ -4582,7 +4582,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 							continue
 						}
 					}
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				}
 			}
 		}
@@ -8557,7 +8557,10 @@ func (s *session) appendErrorWithLevel(number ErrorCode, customizeLevel uint8, v
 		} else if s.stage == StageExec {
 			r.Buf.WriteString("Execute: ")
 		}
-		if len(values) == 0 {
+		if number == ER_CHANGE_COLUMN_TYPE && s.dbType == DBTypeOceanBase {
+			// Keep the configured level for this rule and the OceanBase offline DDL message.
+			r.Buf.WriteString(s.getErrorMessage(ER_CANT_CHANGE_COLUMN_TYPE))
+		} else if len(values) == 0 {
 			r.Buf.WriteString(s.getErrorMessage(number))
 		} else {
 			r.Buf.WriteString(fmt.Sprintf(s.getErrorMessage(number), values...))
