@@ -99,3 +99,33 @@ func TestColumnTypeChangeMessage(t *testing.T) {
 		}
 	}
 }
+
+func TestSharedDDLAuditMessages(t *testing.T) {
+	const offline = "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作."
+	for _, tc := range []struct {
+		code           ErrorCode
+		object, zh, en string
+	}{
+		{ER_CANT_DROP_TABLE, "orders", "禁止删除表 'orders'。", "DROP TABLE is not allowed for table 'orders'."},
+		{ER_CANT_TRUNCATE_TABLE, "orders", "禁止清空表 'orders'。", "TRUNCATE TABLE is not allowed for table 'orders'."},
+		{ER_TABLE_CHARSET_MUST_NULL, "orders", "禁止为表 'orders' 指定字符集。", "Setting the character set for table 'orders' is not allowed."},
+		{ErrTableCollationNotSupport, "orders", "禁止为表 'orders' 指定排序规则。", "Setting the collation for table 'orders' is not allowed."},
+		{ErCantChangeColumnPosition, "orders.id", "禁止指定列 'orders.id' 的位置。", "Specifying the position of column 'orders.id' is not allowed."},
+	} {
+		for _, target := range []struct {
+			dbType     int
+			lang, want string
+		}{
+			{DBTypeMysql, "zh_cn", tc.zh}, {DBTypeMysql, "en_us", tc.en},
+			{DBTypeOceanBase, "zh_cn", offline}, {DBTypeOceanBase, "en_us", offline},
+		} {
+			s := &session{dbType: target.dbType, myRecord: &Record{Buf: new(bytes.Buffer)}, recordSets: &MyRecordSets{}}
+			s.inc.Lang = target.lang
+			s.inc.CheckColumnPositionChange = true
+			s.appendErrorNo(tc.code, tc.object)
+			if got := s.myRecord.Buf.String(); got != target.want+"\n" {
+				t.Errorf("%v dbType=%d lang=%s: got %q, want %q", tc.code, target.dbType, target.lang, got, target.want)
+			}
+		}
+	}
+}

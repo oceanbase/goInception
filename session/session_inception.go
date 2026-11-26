@@ -2363,7 +2363,7 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 	t := node.Table
 
 	if !s.inc.EnableTruncateTable {
-		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
+		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE, t.Name.O)
 	} else {
 		if s.dbType == DBTypeOceanBase {
 			if s.dbVersion == 3 {
@@ -2394,7 +2394,7 @@ func (s *session) checkDropTable(node *ast.DropTableStmt, sql string) {
 	for _, t := range node.Tables {
 
 		if !s.inc.EnableDropTable {
-			s.appendErrorNo(ER_CANT_DROP_TABLE)
+			s.appendErrorNo(ER_CANT_DROP_TABLE, t.Name.O)
 			continue
 		} else {
 			if s.dbType == DBTypeOceanBase {
@@ -2836,13 +2836,13 @@ func (s *session) checkCreateTable(node *ast.CreateTableStmt, sql string) {
 					if s.inc.EnableSetCharset {
 						s.checkCharset(opt.StrValue)
 					} else {
-						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, node.Table.Name.O)
 					}
 				case ast.TableOptionCollate:
 					if s.inc.EnableSetCollation {
 						s.checkCollation(opt.StrValue)
 					} else {
-						s.appendErrorNo(ErrTableCollationNotSupport)
+						s.appendErrorNo(ErrTableCollationNotSupport, node.Table.Name.O)
 					}
 				case ast.TableOptionComment:
 					if opt.StrValue != "" {
@@ -3196,7 +3196,7 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
 					}
 				}
 			}
@@ -3205,7 +3205,7 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 			if s.inc.EnableSetCollation && s.dbType != DBTypeOceanBase {
 				s.checkCollation(opt.StrValue)
 			} else {
-				s.appendErrorNo(ErrTableCollationNotSupport)
+				s.appendErrorNo(ErrTableCollationNotSupport, table)
 			}
 			collation = opt.StrValue
 		case ast.TableOptionComment:
@@ -4230,7 +4230,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 
 					// 在新的快照上变更表结构
 					t := s.cacheTableSnapshot(t)
@@ -4374,7 +4374,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 
 					if c.Position.Tp == ast.ColumnPositionFirst {
 						tmp := make([]FieldInfo, 0, len(t.Fields))
@@ -5473,7 +5473,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 						break
 					}
 				} else {
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 				}
 			}
 
@@ -8557,10 +8557,16 @@ func (s *session) appendErrorWithLevel(number ErrorCode, customizeLevel uint8, v
 		} else if s.stage == StageExec {
 			r.Buf.WriteString("Execute: ")
 		}
-		if number == ER_CHANGE_COLUMN_TYPE && s.dbType == DBTypeOceanBase {
-			// Keep the configured level for this rule and the OceanBase offline DDL message.
-			r.Buf.WriteString(s.getErrorMessage(ER_CANT_CHANGE_COLUMN_TYPE))
-		} else if len(values) == 0 {
+		if s.dbType == DBTypeOceanBase {
+			switch number {
+			case ER_CHANGE_COLUMN_TYPE, ER_CANT_DROP_TABLE, ER_CANT_TRUNCATE_TABLE,
+				ER_TABLE_CHARSET_MUST_NULL, ErrTableCollationNotSupport, ErCantChangeColumnPosition:
+				// Select the message after resolving the original rule's level.
+				number = ER_CANT_CHANGE_COLUMN_TYPE
+				values = nil
+			}
+		}
+		if len(values) == 0 {
 			r.Buf.WriteString(s.getErrorMessage(number))
 		} else {
 			r.Buf.WriteString(fmt.Sprintf(s.getErrorMessage(number), values...))
