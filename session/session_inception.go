@@ -1802,6 +1802,7 @@ func (s *session) mysqlServerVersion() {
 		}
 	} else {
 		emptyInnodbLargePrefix := true
+		innodbLargePrefix := false
 		for rows.Next() {
 			rows.Scan(&name, &value)
 
@@ -1853,7 +1854,7 @@ func (s *session) mysqlServerVersion() {
 				}
 			case "innodb_large_prefix":
 				emptyInnodbLargePrefix = false
-				s.innodbLargePrefix = (value == "ON" || value == "1")
+				innodbLargePrefix = (value == "ON" || value == "1")
 			case "sql_mode":
 				if err := s.sessionVars.SetSystemVar(variable.SQLModeVar, value); err != nil {
 					log.Errorf("con:%d %v", s.sessionVars.ConnectionID, err)
@@ -1888,14 +1889,12 @@ func (s *session) mysqlServerVersion() {
 			}
 		}
 
-		// 如果没有innodb_large_prefix系统变量
-		if emptyInnodbLargePrefix {
-			if s.dbVersion > 50700 {
-				s.innodbLargePrefix = true
-			} else {
-				s.innodbLargePrefix = false
-			}
-		}
+		s.innodbLargePrefix = resolveInnodbLargePrefix(
+			s.dbType,
+			s.dbVersion,
+			!emptyInnodbLargePrefix,
+			innodbLargePrefix,
+		)
 
 		if !s.enforeGtidConsistency && strings.HasPrefix(s.gtidMode, "ON") {
 			s.enforeGtidConsistency = true
@@ -1907,6 +1906,19 @@ func (s *session) mysqlServerVersion() {
 		log.Infof("s.innodbLargePrefix: %v ", s.innodbLargePrefix)
 	}
 
+}
+
+func resolveInnodbLargePrefix(dbType, dbVersion int, variableExists, variableValue bool) bool {
+	// OceanBase does not use MySQL's innodb_large_prefix capability switch.
+	// Its version is stored as the OceanBase major version (for example, 4),
+	// so applying the MySQL version fallback would incorrectly select 767 bytes.
+	if dbType == DBTypeOceanBase {
+		return true
+	}
+	if variableExists {
+		return variableValue
+	}
+	return dbVersion > 50700
 }
 
 func (s *session) fetchThreadID() uint32 {
