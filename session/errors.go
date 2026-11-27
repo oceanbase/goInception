@@ -243,6 +243,9 @@ const (
 	ER_ERROR_LAST
 )
 
+// oceanBaseOfflineDDLMessage is used by shared DDL audit rules when auditing OceanBase.
+const oceanBaseOfflineDDLMessage = "[OceanBase Offline DDL Check] 离线DDL，需要重整表数据，执行过程会阻塞DML即数据写入风险，请谨慎操作."
+
 var ErrorsDefault = map[ErrorCode]string{
 	ER_ERROR_FIRST:                         "HelloWorld",
 	ER_NOT_SUPPORTED_YET:                   "Not supported statement type.",

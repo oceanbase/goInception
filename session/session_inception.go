@@ -3191,14 +3191,16 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 		case ast.TableOptionCharset:
 			if s.inc.EnableSetCharset && s.dbType != DBTypeOceanBase {
 				s.checkCharset(opt.StrValue)
-			} else {
-				if s.inc.CheckOfflineDDL && s.dbType == DBTypeOceanBase {
+			} else if s.dbType == DBTypeOceanBase {
+				if s.inc.CheckOfflineDDL {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
 						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
 					}
 				}
+			} else {
+				s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
 			}
 			character = opt.StrValue
 		case ast.TableOptionCollate:
@@ -8557,22 +8559,24 @@ func (s *session) appendErrorWithLevel(number ErrorCode, customizeLevel uint8, v
 		} else if s.stage == StageExec {
 			r.Buf.WriteString("Execute: ")
 		}
-		if s.dbType == DBTypeOceanBase {
-			switch number {
-			case ER_CHANGE_COLUMN_TYPE, ER_CANT_DROP_TABLE, ER_CANT_TRUNCATE_TABLE,
-				ER_TABLE_CHARSET_MUST_NULL, ErrTableCollationNotSupport, ErCantChangeColumnPosition:
-				// Select the message after resolving the original rule's level.
-				number = ER_CANT_CHANGE_COLUMN_TYPE
-				values = nil
-			}
-		}
-		if len(values) == 0 {
-			r.Buf.WriteString(s.getErrorMessage(number))
-		} else {
-			r.Buf.WriteString(fmt.Sprintf(s.getErrorMessage(number), values...))
-		}
+		// Select the message after resolving the original rule's level.
+		r.Buf.WriteString(s.formatAuditErrorMessage(number, values...))
 		r.Buf.WriteString("\n")
 	}
+}
+
+func (s *session) formatAuditErrorMessage(number ErrorCode, values ...interface{}) string {
+	if s.dbType == DBTypeOceanBase {
+		switch number {
+		case ER_CHANGE_COLUMN_TYPE, ER_CANT_DROP_TABLE, ER_CANT_TRUNCATE_TABLE,
+			ER_TABLE_CHARSET_MUST_NULL, ErrTableCollationNotSupport, ErCantChangeColumnPosition:
+			return oceanBaseOfflineDDLMessage
+		}
+	}
+	if len(values) == 0 {
+		return s.getErrorMessage(number)
+	}
+	return fmt.Sprintf(s.getErrorMessage(number), values...)
 }
 
 func (s *session) checkKeyWords(name string) {
