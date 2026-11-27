@@ -2375,7 +2375,7 @@ func (s *session) checkTruncateTable(node *ast.TruncateTableStmt, sql string) {
 	t := node.Table
 
 	if !s.inc.EnableTruncateTable {
-		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE)
+		s.appendErrorNo(ER_CANT_TRUNCATE_TABLE, t.Name.O)
 	} else {
 		if s.dbType == DBTypeOceanBase {
 			if s.dbVersion == 3 {
@@ -2406,7 +2406,7 @@ func (s *session) checkDropTable(node *ast.DropTableStmt, sql string) {
 	for _, t := range node.Tables {
 
 		if !s.inc.EnableDropTable {
-			s.appendErrorNo(ER_CANT_DROP_TABLE)
+			s.appendErrorNo(ER_CANT_DROP_TABLE, t.Name.O)
 			continue
 		} else {
 			if s.dbType == DBTypeOceanBase {
@@ -2848,13 +2848,13 @@ func (s *session) checkCreateTable(node *ast.CreateTableStmt, sql string) {
 					if s.inc.EnableSetCharset {
 						s.checkCharset(opt.StrValue)
 					} else {
-						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, node.Table.Name.O)
 					}
 				case ast.TableOptionCollate:
 					if s.inc.EnableSetCollation {
 						s.checkCollation(opt.StrValue)
 					} else {
-						s.appendErrorNo(ErrTableCollationNotSupport)
+						s.appendErrorNo(ErrTableCollationNotSupport, node.Table.Name.O)
 					}
 				case ast.TableOptionComment:
 					if opt.StrValue != "" {
@@ -3203,21 +3203,23 @@ func (s *session) checkTableOptions(options []*ast.TableOption, table string, is
 		case ast.TableOptionCharset:
 			if s.inc.EnableSetCharset && s.dbType != DBTypeOceanBase {
 				s.checkCharset(opt.StrValue)
-			} else {
-				if s.inc.CheckOfflineDDL && s.dbType == DBTypeOceanBase {
+			} else if s.dbType == DBTypeOceanBase {
+				if s.inc.CheckOfflineDDL {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL)
+						s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
 					}
 				}
+			} else {
+				s.appendErrorNo(ER_TABLE_CHARSET_MUST_NULL, table)
 			}
 			character = opt.StrValue
 		case ast.TableOptionCollate:
 			if s.inc.EnableSetCollation && s.dbType != DBTypeOceanBase {
 				s.checkCollation(opt.StrValue)
 			} else {
-				s.appendErrorNo(ErrTableCollationNotSupport)
+				s.appendErrorNo(ErrTableCollationNotSupport, table)
 			}
 			collation = opt.StrValue
 		case ast.TableOptionComment:
@@ -4242,7 +4244,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 
 					// 在新的快照上变更表结构
 					t := s.cacheTableSnapshot(t)
@@ -4386,7 +4388,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 
 				if c.Position.Tp != ast.ColumnPositionNone {
 
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 
 					if c.Position.Tp == ast.ColumnPositionFirst {
 						tmp := make([]FieldInfo, 0, len(t.Fields))
@@ -4501,6 +4503,9 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 		// 列类型转换审核
 		fieldType := nc.Tp.CompactStr()
 		if s.inc.CheckColumnTypeChange && fieldType != foundField.Type {
+			reportTypeChange := func() {
+				s.appendErrorNo(ER_CHANGE_COLUMN_TYPE, t.Name+"."+nc.Name.Name.O, foundField.Type, nc.Tp.InfoSchemaStr())
+			}
 			switch nc.Tp.Tp {
 			case mysql.TypeDecimal, mysql.TypeNewDecimal,
 				mysql.TypeVarchar,
@@ -4517,10 +4522,9 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				str := string([]byte(foundField.Type)[:length])
 				// 类型不一致
 				if !strings.Contains(fieldType, str) {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				} else if s.dbType == DBTypeOceanBase {
 					if s.inc.CheckOfflineDDL {
-						// s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
 						if s.dbVersion == 3 {
 							// 同为varchar
 							if strings.Contains(fieldType, "varchar") && strings.Contains(str, "varchar") {
@@ -4533,7 +4537,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 						}
 					}
 				} else if GetDataTypeLength(fieldType)[0] < GetDataTypeLength(foundField.Type)[0] {
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				}
 			case mysql.TypeString:
 				str := string([]byte(foundField.Type)[:4])
@@ -4542,7 +4546,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						reportTypeChange()
 					}
 				} else if s.dbType == DBTypeOceanBase {
 					if s.dbVersion == 3 {
@@ -4554,7 +4558,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 					if s.dbVersion == 3 {
 						s.appendErrorNo(ER_NOT_SUPPORT_FEATURE_OR_FUNCTION_FOR_OB3)
 					} else if s.dbVersion > 3 {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+						reportTypeChange()
 					}
 				}
 			default:
@@ -4568,9 +4572,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 				newTypeIndex, ok2 := IntegerOrderedMaps2[nc.Tp.Tp]
 				if ok1 && ok2 {
 					if newTypeIndex < oldTypeIndex {
-						s.appendErrorNo(ER_CHANGE_COLUMN_TYPE,
-							fmt.Sprintf("%s.%s", t.Name, nc.Name.Name),
-							foundField.Type, fieldType)
+						reportTypeChange()
 					}
 					// 整型有符号/无符号互转在 OceanBase 上为离线 DDL（需重整表数据）
 					if s.dbType == DBTypeOceanBase && s.inc.CheckOfflineDDL && s.dbVersion > 3 {
@@ -4594,7 +4596,7 @@ func (s *session) checkModifyColumn(t *TableInfo, c *ast.AlterTableSpec) {
 							continue
 						}
 					}
-					s.appendErrorNo(ER_CHANGE_COLUMN_TYPE)
+					reportTypeChange()
 				}
 			}
 		}
@@ -5485,7 +5487,7 @@ func (s *session) checkAddColumn(t *TableInfo, c *ast.AlterTableSpec) {
 						break
 					}
 				} else {
-					s.appendErrorNo(ErCantChangeColumnPosition)
+					s.appendErrorNo(ErCantChangeColumnPosition, t.Name+"."+nc.Name.Name.O)
 				}
 			}
 
@@ -8569,13 +8571,24 @@ func (s *session) appendErrorWithLevel(number ErrorCode, customizeLevel uint8, v
 		} else if s.stage == StageExec {
 			r.Buf.WriteString("Execute: ")
 		}
-		if len(values) == 0 {
-			r.Buf.WriteString(s.getErrorMessage(number))
-		} else {
-			r.Buf.WriteString(fmt.Sprintf(s.getErrorMessage(number), values...))
-		}
+		// Select the message after resolving the original rule's level.
+		r.Buf.WriteString(s.formatAuditErrorMessage(number, values...))
 		r.Buf.WriteString("\n")
 	}
+}
+
+func (s *session) formatAuditErrorMessage(number ErrorCode, values ...interface{}) string {
+	if s.dbType == DBTypeOceanBase {
+		switch number {
+		case ER_CHANGE_COLUMN_TYPE, ER_CANT_DROP_TABLE, ER_CANT_TRUNCATE_TABLE,
+			ER_TABLE_CHARSET_MUST_NULL, ErrTableCollationNotSupport, ErCantChangeColumnPosition:
+			return oceanBaseOfflineDDLMessage
+		}
+	}
+	if len(values) == 0 {
+		return s.getErrorMessage(number)
+	}
+	return fmt.Sprintf(s.getErrorMessage(number), values...)
 }
 
 func (s *session) checkKeyWords(name string) {
